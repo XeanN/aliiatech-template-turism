@@ -1,0 +1,90 @@
+name: Portar a aliiatech-template
+
+# Corre cada vez que algo llega a master acá. Copia solo los archivos
+# de la whitelist — nunca las server actions mock, mock-data.ts, ni las
+# páginas de este repo (varias son ramas de archivos compartidos en el
+# repo principal, con forma distinta) — a una rama nueva de
+# aliiatech-template, y abre un PR ahí para que el founder lo revise y
+# apruebe. Este workflow NUNCA mergea nada por su cuenta.
+on:
+  push:
+    branches: [master]
+
+jobs:
+  port:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout este repo (diseño)
+        uses: actions/checkout@v4
+        with:
+          path: design-repo
+
+      - name: Checkout aliiatech-template (real)
+        uses: actions/checkout@v4
+        with:
+          repository: XeanN/aliiatech-template
+          token: ${{ secrets.MAIN_REPO_TOKEN }}
+          path: main-repo
+
+      - name: Copiar componentes de la whitelist y armar rama
+        id: copy
+        run: |
+          set -e
+          cd main-repo
+          BRANCH="port/turismo-$(date +%Y%m%d%H%M%S)"
+          git checkout -b "$BRANCH"
+
+          # Público — TourForm/PromotionForm/CouponForm/TourismSettingsForm/
+          # TourCard/TestimonialsSection/ImageUploadField/LegalSettingsForm
+          # NO se copian acá (adaptados, portar a mano — ver CONTRACT.md).
+          cp ../design-repo/src/components/tourism/TourDatePicker.tsx src/components/tourism/TourDatePicker.tsx
+          cp ../design-repo/src/components/tourism/TourBookingForm.tsx src/components/tourism/TourBookingForm.tsx
+          cp ../design-repo/src/components/tourism/TestimonialForm.tsx src/components/tourism/TestimonialForm.tsx
+          cp ../design-repo/src/components/tourism/TourismLayout.tsx src/components/tourism/TourismLayout.tsx
+
+          # Panel admin — solo componentes portables 1:1.
+          cp ../design-repo/src/components/admin/AdminShell.tsx src/components/admin/AdminShell.tsx
+          cp ../design-repo/src/components/admin/AdminSidebarNav.tsx src/components/admin/AdminSidebarNav.tsx
+          cp ../design-repo/src/components/admin/AdminPageHeader.tsx src/components/admin/AdminPageHeader.tsx
+          cp ../design-repo/src/components/admin/MetricCard.tsx src/components/admin/MetricCard.tsx
+          cp ../design-repo/src/components/admin/EmptyState.tsx src/components/admin/EmptyState.tsx
+          cp ../design-repo/src/components/admin/ThemeToggle.tsx src/components/admin/ThemeToggle.tsx
+          cp ../design-repo/src/components/admin/UserMenu.tsx src/components/admin/UserMenu.tsx
+          cp ../design-repo/src/components/admin/CustomDomainSection.tsx src/components/admin/CustomDomainSection.tsx
+          cp ../design-repo/src/components/admin/TourActions.tsx src/components/admin/TourActions.tsx
+          cp ../design-repo/src/components/admin/AvailabilityCalendar.tsx src/components/admin/AvailabilityCalendar.tsx
+          cp ../design-repo/src/components/admin/AvailabilityForm.tsx src/components/admin/AvailabilityForm.tsx
+          cp ../design-repo/src/components/admin/AvailabilityRangeForm.tsx src/components/admin/AvailabilityRangeForm.tsx
+          cp ../design-repo/src/components/admin/TourBookingActions.tsx src/components/admin/TourBookingActions.tsx
+          cp ../design-repo/src/components/admin/PromotionActions.tsx src/components/admin/PromotionActions.tsx
+          cp ../design-repo/src/components/admin/CouponActions.tsx src/components/admin/CouponActions.tsx
+          cp ../design-repo/src/components/admin/TestimonialActions.tsx src/components/admin/TestimonialActions.tsx
+          cp ../design-repo/src/components/admin/PaymentGatewaySettingsForm.tsx src/components/admin/PaymentGatewaySettingsForm.tsx
+
+          git config user.name "aliiatech-bot"
+          git config user.email "bot@aliiatech.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Sin cambios visuales, no se abre PR."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "chore: port visual desde aliiatech-template-turismo"
+          git push origin "$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+
+      - name: Abrir PR en aliiatech-template
+        if: steps.copy.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.MAIN_REPO_TOKEN }}
+        run: |
+          cd main-repo
+          gh pr create \
+            --repo XeanN/aliiatech-template \
+            --base master \
+            --head "${{ steps.copy.outputs.branch }}" \
+            --title "Port visual: Turismo" \
+            --body "Cambios aprobados en aliiatech-template-turismo, copiados automáticamente. Revisar y aprobar acá para que se despliegue. Recordatorio: las páginas de ese repo y TourForm/PromotionForm/CouponForm/TourismSettingsForm/TourCard/TestimonialsSection/ImageUploadField/LegalSettingsForm (tipos Prisma reales / Vercel Blob real) NO se copian solas — hay que portarlas a mano, ver CONTRACT.md de ese repo."
