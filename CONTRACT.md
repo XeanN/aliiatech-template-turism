@@ -5,6 +5,37 @@ pública de un negocio de tours (subdominio propio, ej.
 `southtrails.aliiatech.com`) y su panel admin completo. Sin nada de lo
 que hay detrás (base de datos, autenticación, envío de emails).
 
+## ACTUALIZACIÓN (2026-08-17): segunda opción de diseño (`components/tourism/alt/`)
+
+`TourismHeaderAlt.tsx` / `TourismHeroAlt.tsx` / `TourismDestinationsGridAlt.tsx`
+(previsualizables juntos en `/turismo-alt`) son una **propuesta visual
+alternativa** a `TourismLayout.tsx` — paleta sky-blue con ícono de avión,
+hero con carrusel de fondo autoplay + buscador de destino, franja de
+destinos con foto. Portados desde el layout "turismo" que apareció por
+error en el sandbox de `aliiatech-template-ecommerce` (colisionaba
+conceptualmente con este vertical — buscador de fechas/pasajeros e
+itinerarios que ya son cosa real acá, no de Ecommerce). Al adaptarlos:
+
+- Se sacó todo lo que no aplica a este vertical (Cart/WishlistHeaderLink
+  — acá no existe "carrito", un tour se consulta/reserva directo).
+- El buscador del hero ("¿A dónde vas?") ahora hace un GET real a
+  `/tours?destino=...` (mismo query param que ya soporta
+  `src/app/tours/page.tsx`) — el original tenía además campos "Fechas"/
+  "Pasajeros" que eran puramente decorativos, se sacaron en vez de
+  fingir un filtro que no existe.
+- La grilla de destinos usa `Tour` real (slug/title/destination/price/
+  currency/images) en vez de "4.9"/"5 días, 4 noches" hardcodeado igual
+  en cada card sin dato real detrás.
+
+**Todavía NO hay un selector real que alterne entre `TourismLayout` y
+esta segunda opción** — ni acá ni en el repo principal, ese vertical
+nunca tuvo sistema de múltiples layouts (a diferencia de Ecommerce/
+Landing de Servicios). `/turismo-alt` es solo una ruta de preview con
+datos de `mock-data.ts`, no reemplaza la home real en `src/app/page.tsx`.
+Construir un selector real (mismo criterio que `TenantTheme.templateId`
+en Ecommerce) es una decisión aparte, pendiente de confirmar antes de
+portar esto al repo principal.
+
 ## Qué SÍ es real acá
 
 **Público:**
